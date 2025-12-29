@@ -16,7 +16,7 @@ export class PostmarkSmtp implements INodeType {
         icon: 'file:postmark.svg',
         group: ['transform'],
         version: 1,
-        subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
+        subtitle: 'Send Email',
         description: 'Send emails via Postmark API',
         defaults: {
             name: 'Postmark SMTP',
@@ -31,43 +31,6 @@ export class PostmarkSmtp implements INodeType {
         ],
         properties: [
             {
-                displayName: 'Resource',
-                name: 'resource',
-                type: 'options',
-                noDataExpression: true,
-                options: [
-                    {
-                        name: 'Email',
-                        value: 'email',
-                    },
-                ],
-                default: 'email',
-            },
-            {
-                displayName: 'Operation',
-                name: 'operation',
-                type: 'options',
-                noDataExpression: true,
-                displayOptions: {
-                    show: {
-                        resource: ['email'],
-                    },
-                },
-                options: [
-                    {
-                        name: 'Send Email',
-                        value: 'sendEmail',
-                        action: 'Send an email',
-                    },
-                    {
-                        name: 'Send Email with Template',
-                        value: 'sendEmailWithTemplate',
-                        action: 'Send an email using a template',
-                    },
-                ],
-                default: 'sendEmail',
-            },
-            {
                 displayName: 'From Domain',
                 name: 'fromDomain',
                 type: 'options',
@@ -76,12 +39,6 @@ export class PostmarkSmtp implements INodeType {
                     loadOptionsMethod: 'getDomains',
                 },
                 default: '',
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail', 'sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
                 description: 'Choose a verified domain',
             },
             {
@@ -90,12 +47,6 @@ export class PostmarkSmtp implements INodeType {
                 type: 'string',
                 default: '',
                 placeholder: 'Sender Name',
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail', 'sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
             },
             {
                 displayName: 'From Email',
@@ -104,12 +55,6 @@ export class PostmarkSmtp implements INodeType {
                 default: '',
                 placeholder: 'sender@example.com',
                 required: true,
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail', 'sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
                 description: 'The sender email address. Must be from the selected domain.',
             },
             {
@@ -118,12 +63,6 @@ export class PostmarkSmtp implements INodeType {
                 type: 'string',
                 default: '',
                 placeholder: 'Recipient Name',
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail', 'sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
             },
             {
                 displayName: 'To Email',
@@ -132,13 +71,21 @@ export class PostmarkSmtp implements INodeType {
                 default: '',
                 placeholder: 'receiver@example.com',
                 required: true,
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail', 'sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
                 description: 'Comma separated list of recipients',
+            },
+            {
+                displayName: 'Cc',
+                name: 'cc',
+                type: 'string',
+                default: '',
+                placeholder: 'cc@example.com',
+            },
+            {
+                displayName: 'Bcc',
+                name: 'bcc',
+                type: 'string',
+                default: '',
+                placeholder: 'bcc@example.com',
             },
             {
                 displayName: 'Subject',
@@ -146,12 +93,6 @@ export class PostmarkSmtp implements INodeType {
                 type: 'string',
                 default: '',
                 required: true,
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail'],
-                        resource: ['email'],
-                    },
-                },
             },
             {
                 displayName: 'HTML Body',
@@ -161,12 +102,6 @@ export class PostmarkSmtp implements INodeType {
                     rows: 5,
                 },
                 default: '',
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail'],
-                        resource: ['email'],
-                    },
-                },
             },
             {
                 displayName: 'Text Body',
@@ -176,38 +111,25 @@ export class PostmarkSmtp implements INodeType {
                     rows: 5,
                 },
                 default: '',
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail'],
-                        resource: ['email'],
-                    },
-                },
             },
             {
                 displayName: 'Attachments',
                 name: 'attachmentsToggle',
                 type: 'boolean',
                 default: false,
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail', 'sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
+                description: 'Whether to add attachments',
             },
             {
                 displayName: 'Attachments',
                 name: 'attachments',
                 type: 'fixedCollection',
-                typeOptions: {
-                    multipleValues: true,
-                },
                 displayOptions: {
                     show: {
                         attachmentsToggle: [true],
-                        operation: ['sendEmail', 'sendEmailWithTemplate'],
-                        resource: ['email'],
                     },
+                },
+                typeOptions: {
+                    multipleValues: true,
                 },
                 options: [
                     {
@@ -233,62 +155,6 @@ export class PostmarkSmtp implements INodeType {
                 ],
                 default: {},
             },
-            // Additional fields for Send Email
-            {
-                displayName: 'Cc',
-                name: 'cc',
-                type: 'string',
-                default: '',
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail', 'sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
-            },
-            {
-                displayName: 'Bcc',
-                name: 'bcc',
-                type: 'string',
-                default: '',
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail', 'sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
-            },
-            // ----------------------------------
-            //         sendEmailWithTemplate
-            // ----------------------------------
-            {
-                displayName: 'Template ID',
-                name: 'templateId',
-                type: 'string',
-                default: '',
-                required: true,
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
-            },
-            {
-                displayName: 'Template Model',
-                name: 'templateModel',
-                type: 'json',
-                default: '{}',
-                required: true,
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
-                description: 'JSON object containing the template model values',
-            },
-
         ],
     };
 
@@ -322,181 +188,94 @@ export class PostmarkSmtp implements INodeType {
     async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
         const items = this.getInputData();
         const returnData: INodeExecutionData[] = [];
-        const operation = this.getNodeParameter('operation', 0) as string;
         const credentials = await this.getCredentials('postmarkApi');
         const serverToken = credentials.serverToken as string;
 
         for (let i = 0; i < items.length; i++) {
             try {
-                let responseData;
+                const fromDomain = this.getNodeParameter('fromDomain', i) as string;
+                const fromName = this.getNodeParameter('fromName', i) as string;
+                const fromEmail = this.getNodeParameter('fromEmail', i) as string;
 
-                if (operation === 'sendEmail') {
-                    const fromDomain = this.getNodeParameter('fromDomain', i) as string;
-                    const fromName = this.getNodeParameter('fromName', i) as string;
-                    const fromEmail = this.getNodeParameter('fromEmail', i) as string;
-
-                    if (!fromEmail.toLowerCase().endsWith('@' + fromDomain.toLowerCase())) {
-                        if (this.continueOnFail()) {
-                            returnData.push({
-                                json: {
-                                    error: `From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`,
-                                },
-                            });
-                            continue;
-                        }
-                        throw new Error(`From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`);
+                if (!fromEmail.toLowerCase().endsWith('@' + fromDomain.toLowerCase())) {
+                    if (this.continueOnFail()) {
+                        returnData.push({
+                            json: {
+                                error: `From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`,
+                            },
+                        });
+                        continue;
                     }
-
-                    let from = fromEmail;
-                    if (fromName) {
-                        from = `"${fromName}" <${fromEmail}>`;
-                    }
-
-                    const toName = this.getNodeParameter('toName', i) as string;
-                    const toEmail = this.getNodeParameter('toEmail', i) as string;
-
-                    let to = toEmail;
-                    if (toName) {
-                        to = `"${toName}" <${toEmail}>`;
-                    }
-
-                    const subject = this.getNodeParameter('subject', i) as string;
-                    const htmlBody = this.getNodeParameter('htmlBody', i) as string;
-                    const textBody = this.getNodeParameter('textBody', i) as string;
-                    const cc = this.getNodeParameter('cc', i) as string;
-                    const bcc = this.getNodeParameter('bcc', i) as string;
-
-                    const body: any = {
-                        From: from,
-                        To: to,
-                        Subject: subject,
-                        HtmlBody: htmlBody,
-                        TextBody: textBody,
-                        Cc: cc,
-                        Bcc: bcc,
-                        MessageStream: 'outbound',
-                    };
-
-                    // Handle Attachments
-                    const attachmentsToggle = this.getNodeParameter('attachmentsToggle', i) as boolean;
-                    if (attachmentsToggle) {
-                        const attachmentsConfig = this.getNodeParameter('attachments', i) as any;
-                        const attachments = [];
-
-                        if (attachmentsConfig && attachmentsConfig.attachment) {
-                            for (const att of attachmentsConfig.attachment) {
-                                const propertyName = att.propertyName;
-                                const binaryData = this.helpers.assertBinaryData(i, propertyName);
-                                const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(i, propertyName);
-
-                                attachments.push({
-                                    Name: att.fileName || binaryData.fileName || 'attachment',
-                                    Content: binaryDataBuffer.toString('base64'),
-                                    ContentType: binaryData.mimeType,
-                                });
-                            }
-                        }
-
-                        if (attachments.length > 0) {
-                            body.Attachments = attachments;
-                        }
-                    }
-
-                    const options: IRequestOptions = {
-                        method: 'POST',
-                        uri: 'https://api.postmarkapp.com/email',
-                        headers: {
-                            'X-Postmark-Server-Token': serverToken,
-                            'Accept': 'application/json',
-                        },
-                        body: body,
-                        json: true,
-                    };
-
-                    responseData = await this.helpers.request(options);
-                } else if (operation === 'sendEmailWithTemplate') {
-                    const fromDomain = this.getNodeParameter('fromDomain', i) as string;
-                    const fromName = this.getNodeParameter('fromName', i) as string;
-                    const fromEmail = this.getNodeParameter('fromEmail', i) as string;
-
-                    if (!fromEmail.toLowerCase().endsWith('@' + fromDomain.toLowerCase())) {
-                        if (this.continueOnFail()) {
-                            returnData.push({
-                                json: {
-                                    error: `From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`,
-                                },
-                            });
-                            continue;
-                        }
-                        throw new Error(`From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`);
-                    }
-
-                    let from = fromEmail;
-                    if (fromName) {
-                        from = `"${fromName}" <${fromEmail}>`;
-                    }
-
-                    const toName = this.getNodeParameter('toName', i) as string;
-                    const toEmail = this.getNodeParameter('toEmail', i) as string;
-
-                    let to = toEmail;
-                    if (toName) {
-                        to = `"${toName}" <${toEmail}>`;
-                    }
-
-                    const templateId = this.getNodeParameter('templateId', i) as string;
-                    const templateModel = this.getNodeParameter('templateModel', i) as object;
-                    const cc = this.getNodeParameter('cc', i) as string;
-                    const bcc = this.getNodeParameter('bcc', i) as string;
-
-                    const body: any = {
-                        From: from,
-                        To: to,
-                        TemplateId: templateId,
-                        TemplateModel: templateModel,
-                        Cc: cc,
-                        Bcc: bcc,
-                        MessageStream: 'outbound',
-                    };
-
-                    // Handle Attachments
-                    const attachmentsToggle = this.getNodeParameter('attachmentsToggle', i) as boolean;
-                    if (attachmentsToggle) {
-                        const attachmentsConfig = this.getNodeParameter('attachments', i) as any;
-                        const attachments = [];
-
-                        if (attachmentsConfig && attachmentsConfig.attachment) {
-                            for (const att of attachmentsConfig.attachment) {
-                                const propertyName = att.propertyName;
-                                const binaryData = this.helpers.assertBinaryData(i, propertyName);
-                                const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(i, propertyName);
-
-                                attachments.push({
-                                    Name: att.fileName || binaryData.fileName || 'attachment',
-                                    Content: binaryDataBuffer.toString('base64'),
-                                    ContentType: binaryData.mimeType,
-                                });
-                            }
-                        }
-
-                        if (attachments.length > 0) {
-                            body.Attachments = attachments;
-                        }
-                    }
-
-                    const options: IRequestOptions = {
-                        method: 'POST',
-                        uri: 'https://api.postmarkapp.com/email/withTemplate',
-                        headers: {
-                            'X-Postmark-Server-Token': serverToken,
-                            'Accept': 'application/json',
-                        },
-                        body: body,
-                        json: true,
-                    };
-
-                    responseData = await this.helpers.request(options);
+                    throw new Error(`From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`);
                 }
+
+                let from = fromEmail;
+                if (fromName) {
+                    from = `"${fromName}" <${fromEmail}>`;
+                }
+
+                const toName = this.getNodeParameter('toName', i) as string;
+                const toEmail = this.getNodeParameter('toEmail', i) as string;
+
+                let to = toEmail;
+                if (toName) {
+                    to = `"${toName}" <${toEmail}>`;
+                }
+
+                const cc = this.getNodeParameter('cc', i) as string;
+                const bcc = this.getNodeParameter('bcc', i) as string;
+                const subject = this.getNodeParameter('subject', i) as string;
+                const htmlBody = this.getNodeParameter('htmlBody', i) as string;
+                const textBody = this.getNodeParameter('textBody', i) as string;
+
+                const body: any = {
+                    From: from,
+                    To: to,
+                    Subject: subject,
+                    HtmlBody: htmlBody,
+                    TextBody: textBody,
+                    Cc: cc,
+                    Bcc: bcc,
+                    MessageStream: 'outbound',
+                };
+
+                // Handle Attachments
+                const attachmentsToggle = this.getNodeParameter('attachmentsToggle', i) as boolean;
+                if (attachmentsToggle) {
+                    const attachmentsConfig = this.getNodeParameter('attachments', i) as any;
+                    const attachments = [];
+
+                    if (attachmentsConfig && attachmentsConfig.attachment) {
+                        for (const att of attachmentsConfig.attachment) {
+                            const propertyName = att.propertyName;
+                            const binaryData = this.helpers.assertBinaryData(i, propertyName);
+                            const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(i, propertyName);
+
+                            attachments.push({
+                                Name: att.fileName || binaryData.fileName || 'attachment',
+                                Content: binaryDataBuffer.toString('base64'),
+                                ContentType: binaryData.mimeType,
+                            });
+                        }
+                    }
+
+                    if (attachments.length > 0) {
+                        body.Attachments = attachments;
+                    }
+                }
+
+                const options: IRequestOptions = {
+                    method: 'POST',
+                    uri: 'https://api.postmarkapp.com/email',
+                    headers: {
+                        'X-Postmark-Server-Token': serverToken,
+                        'Accept': 'application/json',
+                    },
+                    body: body,
+                    json: true,
+                };
+
+                const responseData = await this.helpers.request(options);
 
                 returnData.push({
                     json: responseData,
