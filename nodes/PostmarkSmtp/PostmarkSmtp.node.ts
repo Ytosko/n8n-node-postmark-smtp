@@ -1,0 +1,474 @@
+
+import {
+    IExecuteFunctions,
+    INodeExecutionData,
+    INodeType,
+    INodeTypeDescription,
+    ILoadOptionsFunctions,
+    INodePropertyOptions,
+    IRequestOptions,
+} from 'n8n-workflow';
+
+export class PostmarkSmtp implements INodeType {
+    description: INodeTypeDescription = {
+        displayName: 'Postmark SMTP by Ytosko',
+        name: 'postmarkSmtp',
+        icon: 'file:postmark.svg',
+        group: ['transform'],
+        version: 1,
+        subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
+        description: 'Send emails via Postmark API',
+        defaults: {
+            name: 'Postmark SMTP',
+        },
+        inputs: ['main'],
+        outputs: ['main'],
+        credentials: [
+            {
+                name: 'postmarkServerToken',
+                required: true,
+            },
+            {
+                name: 'postmarkAccountToken',
+                required: true,
+            },
+        ],
+        properties: [
+            {
+                displayName: 'Resource',
+                name: 'resource',
+                type: 'options',
+                noDataExpression: true,
+                options: [
+                    {
+                        name: 'Email',
+                        value: 'email',
+                    },
+                ],
+                default: 'email',
+            },
+            {
+                displayName: 'Operation',
+                name: 'operation',
+                type: 'options',
+                noDataExpression: true,
+                displayOptions: {
+                    show: {
+                        resource: ['email'],
+                    },
+                },
+                options: [
+                    {
+                        name: 'Send Email',
+                        value: 'sendEmail',
+                        action: 'Send an email',
+                    },
+                    {
+                        name: 'Batch Send Email',
+                        value: 'batchSendEmail',
+                        action: 'Send multiple emails in a batch',
+                    },
+                    {
+                        name: 'Send Email with Template',
+                        value: 'sendEmailWithTemplate',
+                        action: 'Send an email using a template',
+                    },
+                ],
+                default: 'sendEmail',
+            },
+            // ----------------------------------
+            //         sendEmail
+            // ----------------------------------
+            {
+                displayName: 'From (Local Part)',
+                name: 'fromLocalPart',
+                type: 'string',
+                default: '',
+                placeholder: 'sender',
+                required: true,
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail', 'batchSendEmail'],
+                        resource: ['email'],
+                    },
+                },
+                description: 'The local part of the sender email address (before @)',
+            },
+            {
+                displayName: 'From (Domain)',
+                name: 'fromDomain',
+                type: 'options',
+                required: true,
+                typeOptions: {
+                    loadOptionsMethod: 'getDomains',
+                },
+                default: '',
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail', 'batchSendEmail'],
+                        resource: ['email'],
+                    },
+                },
+                description: 'Choose a verified domain',
+            },
+            {
+                displayName: 'To',
+                name: 'to',
+                type: 'string',
+                default: '',
+                placeholder: 'receiver@example.com',
+                required: true,
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail', 'sendEmailWithTemplate'],
+                        resource: ['email'],
+                    },
+                },
+                description: 'Comma separated list of recipients',
+            },
+            {
+                displayName: 'Subject',
+                name: 'subject',
+                type: 'string',
+                default: '',
+                required: true,
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail'],
+                        resource: ['email'],
+                    },
+                },
+            },
+            {
+                displayName: 'HTML Body',
+                name: 'htmlBody',
+                type: 'string',
+                typeOptions: {
+                    rows: 5,
+                },
+                default: '',
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail'],
+                        resource: ['email'],
+                    },
+                },
+            },
+            {
+                displayName: 'Text Body',
+                name: 'textBody',
+                type: 'string',
+                typeOptions: {
+                    rows: 5,
+                },
+                default: '',
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail'],
+                        resource: ['email'],
+                    },
+                },
+            },
+            {
+                displayName: 'Attachments',
+                name: 'attachmentsToggle',
+                type: 'boolean',
+                default: false,
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail'],
+                        resource: ['email'],
+                    },
+                },
+            },
+            {
+                displayName: 'Attachments',
+                name: 'attachments',
+                type: 'fixedCollection',
+                typeOptions: {
+                    multipleValues: true,
+                },
+                displayOptions: {
+                    show: {
+                        attachmentsToggle: [true],
+                        operation: ['sendEmail'],
+                        resource: ['email'],
+                    },
+                },
+                options: [
+                    {
+                        name: 'attachment',
+                        displayName: 'Attachment',
+                        values: [
+                            {
+                                displayName: 'Property Name',
+                                name: 'propertyName',
+                                type: 'string',
+                                default: 'data',
+                                description: 'Name of the binary property which contains the data for the attachment',
+                            },
+                            {
+                                displayName: 'File Name',
+                                name: 'fileName',
+                                type: 'string',
+                                default: '',
+                                description: 'Optional name for the file',
+                            },
+                        ],
+                    },
+                ],
+                default: {},
+            },
+            // Additional fields for Send Email
+            {
+                displayName: 'Cc',
+                name: 'cc',
+                type: 'string',
+                default: '',
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail', 'sendEmailWithTemplate'],
+                        resource: ['email'],
+                    },
+                },
+            },
+            {
+                displayName: 'Bcc',
+                name: 'bcc',
+                type: 'string',
+                default: '',
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail', 'sendEmailWithTemplate'],
+                        resource: ['email'],
+                    },
+                },
+            },
+            // ----------------------------------
+            //         sendEmailWithTemplate
+            // ----------------------------------
+            {
+                displayName: 'Template ID',
+                name: 'templateId',
+                type: 'string',
+                default: '',
+                required: true,
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmailWithTemplate'],
+                        resource: ['email'],
+                    },
+                },
+            },
+            {
+                displayName: 'Template Model',
+                name: 'templateModel',
+                type: 'json',
+                default: '{}',
+                required: true,
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmailWithTemplate'],
+                        resource: ['email'],
+                    },
+                },
+                description: 'JSON object containing the template model values',
+            },
+            {
+                displayName: 'From',
+                name: 'from',
+                type: 'string',
+                default: '',
+                required: true,
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmailWithTemplate'],
+                        resource: ['email'],
+                    },
+                },
+                description: 'The sender email address',
+            },
+            // ----------------------------------
+            //         batchSendEmail
+            // ----------------------------------
+            {
+                displayName: 'Batch Input (JSON)',
+                name: 'batchInput',
+                type: 'json',
+                default: '[]',
+                required: true,
+                displayOptions: {
+                    show: {
+                        operation: ['batchSendEmail'],
+                        resource: ['email'],
+                    },
+                },
+                description: 'Array of email objects to send in batch',
+            },
+        ],
+    };
+
+    methods = {
+        loadOptions: {
+            async getDomains(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+                const credentials = await this.getCredentials('postmarkAccountToken');
+                const token = credentials.accountToken as string;
+
+                const options: IRequestOptions = {
+                    method: 'GET',
+                    uri: 'https://api.postmarkapp.com/domains?count=50&offset=0',
+                    headers: {
+                        'X-Postmark-Account-Token': token,
+                        'Accept': 'application/json',
+                    },
+                    json: true,
+                };
+
+                const response = await this.helpers.request(options);
+                const domains = response.Domains || [];
+
+                return domains.map((domain: any) => ({
+                    name: domain.Name,
+                    value: domain.Name,
+                }));
+            },
+        },
+    };
+
+    async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+        const items = this.getInputData();
+        const returnData: INodeExecutionData[] = [];
+        const operation = this.getNodeParameter('operation', 0) as string;
+        const credentials = await this.getCredentials('postmarkServerToken');
+        const serverToken = credentials.serverToken as string;
+
+        for (let i = 0; i < items.length; i++) {
+            try {
+                let responseData;
+
+                if (operation === 'sendEmail') {
+                    const fromLocalPart = this.getNodeParameter('fromLocalPart', i) as string;
+                    const fromDomain = this.getNodeParameter('fromDomain', i) as string;
+                    const from = `${fromLocalPart}@${fromDomain}`;
+                    const to = this.getNodeParameter('to', i) as string;
+                    const subject = this.getNodeParameter('subject', i) as string;
+                    const htmlBody = this.getNodeParameter('htmlBody', i) as string;
+                    const textBody = this.getNodeParameter('textBody', i) as string;
+                    const cc = this.getNodeParameter('cc', i) as string;
+                    const bcc = this.getNodeParameter('bcc', i) as string;
+
+                    const body: any = {
+                        From: from,
+                        To: to,
+                        Subject: subject,
+                        HtmlBody: htmlBody,
+                        TextBody: textBody,
+                        Cc: cc,
+                        Bcc: bcc,
+                        MessageStream: 'outbound',
+                    };
+
+                    // Handle Attachments
+                    const attachmentsToggle = this.getNodeParameter('attachmentsToggle', i) as boolean;
+                    if (attachmentsToggle) {
+                        const attachmentsConfig = this.getNodeParameter('attachments', i) as any;
+                        const attachments = [];
+
+                        if (attachmentsConfig && attachmentsConfig.attachment) {
+                            for (const att of attachmentsConfig.attachment) {
+                                const propertyName = att.propertyName;
+                                const binaryData = this.helpers.assertBinaryData(i, propertyName);
+                                const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(i, propertyName);
+
+                                attachments.push({
+                                    Name: att.fileName || binaryData.fileName || 'attachment',
+                                    Content: binaryDataBuffer.toString('base64'),
+                                    ContentType: binaryData.mimeType,
+                                });
+                            }
+                        }
+
+                        if (attachments.length > 0) {
+                            body.Attachments = attachments;
+                        }
+                    }
+
+                    const options: IRequestOptions = {
+                        method: 'POST',
+                        uri: 'https://api.postmarkapp.com/email',
+                        headers: {
+                            'X-Postmark-Server-Token': serverToken,
+                            'Accept': 'application/json',
+                        },
+                        body: body,
+                        json: true,
+                    };
+
+                    responseData = await this.helpers.request(options);
+                } else if (operation === 'sendEmailWithTemplate') {
+                    const from = this.getNodeParameter('from', i) as string;
+                    const to = this.getNodeParameter('to', i) as string;
+                    const templateId = this.getNodeParameter('templateId', i) as string;
+                    const templateModel = this.getNodeParameter('templateModel', i) as object;
+                    const cc = this.getNodeParameter('cc', i) as string;
+                    const bcc = this.getNodeParameter('bcc', i) as string;
+
+                    const body = {
+                        From: from,
+                        To: to,
+                        TemplateId: templateId,
+                        TemplateModel: templateModel,
+                        Cc: cc,
+                        Bcc: bcc,
+                        MessageStream: 'outbound',
+                    };
+
+                    const options: IRequestOptions = {
+                        method: 'POST',
+                        uri: 'https://api.postmarkapp.com/email/withTemplate',
+                        headers: {
+                            'X-Postmark-Server-Token': serverToken,
+                            'Accept': 'application/json',
+                        },
+                        body: body,
+                        json: true,
+                    };
+
+                    responseData = await this.helpers.request(options);
+                } else if (operation === 'batchSendEmail') {
+                    const batchInput = this.getNodeParameter('batchInput', i) as any[];
+
+                    const options: IRequestOptions = {
+                        method: 'POST',
+                        uri: 'https://api.postmarkapp.com/email/batch',
+                        headers: {
+                            'X-Postmark-Server-Token': serverToken,
+                            'Accept': 'application/json',
+                        },
+                        body: batchInput,
+                        json: true,
+                    };
+
+                    responseData = await this.helpers.request(options);
+                }
+
+                returnData.push({
+                    json: responseData,
+                });
+
+            } catch (error) {
+                if (this.continueOnFail()) {
+                    returnData.push({
+                        json: {
+                            error: (error as any).message,
+                        },
+                    });
+                    continue;
+                }
+                throw error;
+            }
+        }
+
+        return [returnData];
+    }
+}
