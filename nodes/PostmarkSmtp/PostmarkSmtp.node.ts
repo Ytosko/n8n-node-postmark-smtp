@@ -31,6 +31,38 @@ export class PostmarkSmtp implements INodeType {
         ],
         properties: [
             {
+                displayName: 'Resource',
+                name: 'resource',
+                type: 'options',
+                noDataExpression: true,
+                options: [
+                    {
+                        name: 'Email',
+                        value: 'email',
+                    },
+                ],
+                default: 'email',
+            },
+            {
+                displayName: 'Operation',
+                name: 'operation',
+                type: 'options',
+                noDataExpression: true,
+                displayOptions: {
+                    show: {
+                        resource: ['email'],
+                    },
+                },
+                options: [
+                    {
+                        name: 'Send Email',
+                        value: 'sendEmail',
+                        action: 'Send an email',
+                    },
+                ],
+                default: 'sendEmail',
+            },
+            {
                 displayName: 'From Domain',
                 name: 'fromDomain',
                 type: 'options',
