@@ -25,11 +25,7 @@ export class PostmarkSmtp implements INodeType {
         outputs: ['main'],
         credentials: [
             {
-                name: 'postmarkServerToken',
-                required: true,
-            },
-            {
-                name: 'postmarkAccountToken',
+                name: 'postmarkApi',
                 required: true,
             },
         ],
@@ -64,11 +60,6 @@ export class PostmarkSmtp implements INodeType {
                         action: 'Send an email',
                     },
                     {
-                        name: 'Batch Send Email',
-                        value: 'batchSendEmail',
-                        action: 'Send multiple emails in a batch',
-                    },
-                    {
                         name: 'Send Email with Template',
                         value: 'sendEmailWithTemplate',
                         action: 'Send an email using a template',
@@ -76,26 +67,8 @@ export class PostmarkSmtp implements INodeType {
                 ],
                 default: 'sendEmail',
             },
-            // ----------------------------------
-            //         sendEmail
-            // ----------------------------------
             {
-                displayName: 'From (Local Part)',
-                name: 'fromLocalPart',
-                type: 'string',
-                default: '',
-                placeholder: 'sender',
-                required: true,
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmail', 'batchSendEmail'],
-                        resource: ['email'],
-                    },
-                },
-                description: 'The local part of the sender email address (before @)',
-            },
-            {
-                displayName: 'From (Domain)',
+                displayName: 'From Domain',
                 name: 'fromDomain',
                 type: 'options',
                 required: true,
@@ -105,15 +78,56 @@ export class PostmarkSmtp implements INodeType {
                 default: '',
                 displayOptions: {
                     show: {
-                        operation: ['sendEmail', 'batchSendEmail'],
+                        operation: ['sendEmail', 'sendEmailWithTemplate'],
                         resource: ['email'],
                     },
                 },
                 description: 'Choose a verified domain',
             },
             {
-                displayName: 'To',
-                name: 'to',
+                displayName: 'From Name',
+                name: 'fromName',
+                type: 'string',
+                default: '',
+                placeholder: 'Sender Name',
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail', 'sendEmailWithTemplate'],
+                        resource: ['email'],
+                    },
+                },
+            },
+            {
+                displayName: 'From Email',
+                name: 'fromEmail',
+                type: 'string',
+                default: '',
+                placeholder: 'sender@example.com',
+                required: true,
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail', 'sendEmailWithTemplate'],
+                        resource: ['email'],
+                    },
+                },
+                description: 'The sender email address. Must be from the selected domain.',
+            },
+            {
+                displayName: 'To Name',
+                name: 'toName',
+                type: 'string',
+                default: '',
+                placeholder: 'Recipient Name',
+                displayOptions: {
+                    show: {
+                        operation: ['sendEmail', 'sendEmailWithTemplate'],
+                        resource: ['email'],
+                    },
+                },
+            },
+            {
+                displayName: 'To Email',
+                name: 'toEmail',
                 type: 'string',
                 default: '',
                 placeholder: 'receiver@example.com',
@@ -176,7 +190,7 @@ export class PostmarkSmtp implements INodeType {
                 default: false,
                 displayOptions: {
                     show: {
-                        operation: ['sendEmail'],
+                        operation: ['sendEmail', 'sendEmailWithTemplate'],
                         resource: ['email'],
                     },
                 },
@@ -191,7 +205,7 @@ export class PostmarkSmtp implements INodeType {
                 displayOptions: {
                     show: {
                         attachmentsToggle: [true],
-                        operation: ['sendEmail'],
+                        operation: ['sendEmail', 'sendEmailWithTemplate'],
                         resource: ['email'],
                     },
                 },
@@ -274,44 +288,14 @@ export class PostmarkSmtp implements INodeType {
                 },
                 description: 'JSON object containing the template model values',
             },
-            {
-                displayName: 'From',
-                name: 'from',
-                type: 'string',
-                default: '',
-                required: true,
-                displayOptions: {
-                    show: {
-                        operation: ['sendEmailWithTemplate'],
-                        resource: ['email'],
-                    },
-                },
-                description: 'The sender email address',
-            },
-            // ----------------------------------
-            //         batchSendEmail
-            // ----------------------------------
-            {
-                displayName: 'Batch Input (JSON)',
-                name: 'batchInput',
-                type: 'json',
-                default: '[]',
-                required: true,
-                displayOptions: {
-                    show: {
-                        operation: ['batchSendEmail'],
-                        resource: ['email'],
-                    },
-                },
-                description: 'Array of email objects to send in batch',
-            },
+
         ],
     };
 
     methods = {
         loadOptions: {
             async getDomains(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-                const credentials = await this.getCredentials('postmarkAccountToken');
+                const credentials = await this.getCredentials('postmarkApi');
                 const token = credentials.accountToken as string;
 
                 const options: IRequestOptions = {
@@ -339,7 +323,7 @@ export class PostmarkSmtp implements INodeType {
         const items = this.getInputData();
         const returnData: INodeExecutionData[] = [];
         const operation = this.getNodeParameter('operation', 0) as string;
-        const credentials = await this.getCredentials('postmarkServerToken');
+        const credentials = await this.getCredentials('postmarkApi');
         const serverToken = credentials.serverToken as string;
 
         for (let i = 0; i < items.length; i++) {
@@ -347,10 +331,35 @@ export class PostmarkSmtp implements INodeType {
                 let responseData;
 
                 if (operation === 'sendEmail') {
-                    const fromLocalPart = this.getNodeParameter('fromLocalPart', i) as string;
                     const fromDomain = this.getNodeParameter('fromDomain', i) as string;
-                    const from = `${fromLocalPart}@${fromDomain}`;
-                    const to = this.getNodeParameter('to', i) as string;
+                    const fromName = this.getNodeParameter('fromName', i) as string;
+                    const fromEmail = this.getNodeParameter('fromEmail', i) as string;
+
+                    if (!fromEmail.toLowerCase().endsWith('@' + fromDomain.toLowerCase())) {
+                        if (this.continueOnFail()) {
+                            returnData.push({
+                                json: {
+                                    error: `From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`,
+                                },
+                            });
+                            continue;
+                        }
+                        throw new Error(`From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`);
+                    }
+
+                    let from = fromEmail;
+                    if (fromName) {
+                        from = `"${fromName}" <${fromEmail}>`;
+                    }
+
+                    const toName = this.getNodeParameter('toName', i) as string;
+                    const toEmail = this.getNodeParameter('toEmail', i) as string;
+
+                    let to = toEmail;
+                    if (toName) {
+                        to = `"${toName}" <${toEmail}>`;
+                    }
+
                     const subject = this.getNodeParameter('subject', i) as string;
                     const htmlBody = this.getNodeParameter('htmlBody', i) as string;
                     const textBody = this.getNodeParameter('textBody', i) as string;
@@ -406,14 +415,41 @@ export class PostmarkSmtp implements INodeType {
 
                     responseData = await this.helpers.request(options);
                 } else if (operation === 'sendEmailWithTemplate') {
-                    const from = this.getNodeParameter('from', i) as string;
-                    const to = this.getNodeParameter('to', i) as string;
+                    const fromDomain = this.getNodeParameter('fromDomain', i) as string;
+                    const fromName = this.getNodeParameter('fromName', i) as string;
+                    const fromEmail = this.getNodeParameter('fromEmail', i) as string;
+
+                    if (!fromEmail.toLowerCase().endsWith('@' + fromDomain.toLowerCase())) {
+                        if (this.continueOnFail()) {
+                            returnData.push({
+                                json: {
+                                    error: `From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`,
+                                },
+                            });
+                            continue;
+                        }
+                        throw new Error(`From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`);
+                    }
+
+                    let from = fromEmail;
+                    if (fromName) {
+                        from = `"${fromName}" <${fromEmail}>`;
+                    }
+
+                    const toName = this.getNodeParameter('toName', i) as string;
+                    const toEmail = this.getNodeParameter('toEmail', i) as string;
+
+                    let to = toEmail;
+                    if (toName) {
+                        to = `"${toName}" <${toEmail}>`;
+                    }
+
                     const templateId = this.getNodeParameter('templateId', i) as string;
                     const templateModel = this.getNodeParameter('templateModel', i) as object;
                     const cc = this.getNodeParameter('cc', i) as string;
                     const bcc = this.getNodeParameter('bcc', i) as string;
 
-                    const body = {
+                    const body: any = {
                         From: from,
                         To: to,
                         TemplateId: templateId,
@@ -423,6 +459,31 @@ export class PostmarkSmtp implements INodeType {
                         MessageStream: 'outbound',
                     };
 
+                    // Handle Attachments
+                    const attachmentsToggle = this.getNodeParameter('attachmentsToggle', i) as boolean;
+                    if (attachmentsToggle) {
+                        const attachmentsConfig = this.getNodeParameter('attachments', i) as any;
+                        const attachments = [];
+
+                        if (attachmentsConfig && attachmentsConfig.attachment) {
+                            for (const att of attachmentsConfig.attachment) {
+                                const propertyName = att.propertyName;
+                                const binaryData = this.helpers.assertBinaryData(i, propertyName);
+                                const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(i, propertyName);
+
+                                attachments.push({
+                                    Name: att.fileName || binaryData.fileName || 'attachment',
+                                    Content: binaryDataBuffer.toString('base64'),
+                                    ContentType: binaryData.mimeType,
+                                });
+                            }
+                        }
+
+                        if (attachments.length > 0) {
+                            body.Attachments = attachments;
+                        }
+                    }
+
                     const options: IRequestOptions = {
                         method: 'POST',
                         uri: 'https://api.postmarkapp.com/email/withTemplate',
@@ -431,21 +492,6 @@ export class PostmarkSmtp implements INodeType {
                             'Accept': 'application/json',
                         },
                         body: body,
-                        json: true,
-                    };
-
-                    responseData = await this.helpers.request(options);
-                } else if (operation === 'batchSendEmail') {
-                    const batchInput = this.getNodeParameter('batchInput', i) as any[];
-
-                    const options: IRequestOptions = {
-                        method: 'POST',
-                        uri: 'https://api.postmarkapp.com/email/batch',
-                        headers: {
-                            'X-Postmark-Server-Token': serverToken,
-                            'Accept': 'application/json',
-                        },
-                        body: batchInput,
                         json: true,
                     };
 

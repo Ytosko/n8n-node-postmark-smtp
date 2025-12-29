@@ -13,15 +13,14 @@ This is an n8n community node. It lets you use Postmark to send transactional em
     - Attachments (binary data).
     - CC and BCC recipients.
     - Dynamic sender verification (loads verified domains from your account).
-- **Batch Send Email**: Send multiple emails in a single API request for better performance.
-- **Send Email with Template**: Use Postmark's template feature to send emails by providing a Template ID and a Model (JSON).
+- **Send Email with Template**: Use Postmark's template feature to send emails with full sender/recipient control.
 
 ## Credentials
 
-This node requires two types of credentials:
+This node requires a **Postmark API** credential which includes:
 
-1.  **Postmark Server Token**: Required for sending emails. You can find this in your Postmark server settings under "API Tokens".
-2.  **Postmark Account Token**: Required *only* if you want to use the "From (Domain)" dropdown to fetch verified domains. You can find this in your Postmark account settings.
+1.  **Server Token**: Required for sending emails. You can find this in your Postmark server settings under "API Tokens".
+2.  **Account Token**: Required *only* if you want to fetch verified domains dynamically. You can find this in your Postmark account settings.
 
 ## Installation
 
@@ -37,25 +36,31 @@ docker exec -it n8n npm install n8n-nodes-postmark-smtp
 
 ## Usage
 
-### sending an Email
+### Sending an Email
 1.  Select the **Send Email** operation.
-2.  Connect your **Postmark Server Token**.
-3.  (Optional) Connect your **Postmark Account Token** to auto-populate the *From (Domain)* field.
-4.  Enter the *From (Local Part)* (e.g., `info` for `info@example.com`).
-5.  Select a valid *From (Domain)*.
-6.  Enter the recipient(s) in *To*.
-7.  Fill in *Subject*, *HTML Body*, and *Text Body*.
+2.  Connect your **Postmark API** credential (fill in Server Token and optionally Account Token).
+3.  Select a valid **From Domain** (dynamically loaded).
+4.  (Optional) Enter **From Name**.
+5.  Enter **From Email**. *Note: This must belong to the selected 'From Domain' or the node will error.*
+6.  (Optional) Enter **To Name**.
+7.  Enter **To Email**.
+8.  Fill in *Subject*, *HTML Body*, and *Text Body*.
 
 ### Sending with Templates
 1.  Select the **Send Email with Template** operation.
-2.  Enter the **Template ID** (found in Postmark UI).
-3.  Provide the **Template Model** as a JSON object matching your template variables.
+2.  Connect your **Postmark API** credential.
+3.  Select a valid **From Domain**.
+4.  Enter **From Name** and **From Email**.
+5.  Enter **To Name** and **To Email**.
+6.  Enter the **Template ID** (found in Postmark UI).
+7.  Provide the **Template Model** as a JSON object matching your template variables.
     ```json
     {
       "user_name": "John Doe",
       "action_url": "https://example.com/login"
     }
     ```
+8.  (Optional) Add **Attachments**.
 
 ## Development
 
