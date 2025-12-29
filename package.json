@@ -6,6 +6,15 @@
         "n8n-community-node-package"
     ],
     "license": "MIT",
+    "homepage": "https://github.com/Ytosko/n8n-node-postmark-smtp#readme",
+    "author": {
+        "name": "Ytosko",
+        "email": "ytosko@ytosko.dev"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Ytosko/n8n-node-postmark-smtp.git"
+    },
     "main": "index.js",
     "scripts": {
         "build": "n8n-node build",
