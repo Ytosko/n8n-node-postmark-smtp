@@ -106,20 +106,6 @@ export class PostmarkSmtp implements INodeType {
                 description: 'Comma separated list of recipients',
             },
             {
-                displayName: 'Cc',
-                name: 'cc',
-                type: 'string',
-                default: '',
-                placeholder: 'cc@example.com',
-            },
-            {
-                displayName: 'Bcc',
-                name: 'bcc',
-                type: 'string',
-                default: '',
-                placeholder: 'bcc@example.com',
-            },
-            {
                 displayName: 'Subject',
                 name: 'subject',
                 type: 'string',
@@ -136,56 +122,58 @@ export class PostmarkSmtp implements INodeType {
                 default: '',
             },
             {
-                displayName: 'Text Body',
-                name: 'textBody',
-                type: 'string',
-                typeOptions: {
-                    rows: 5,
-                },
-                default: '',
-            },
-            {
-                displayName: 'Attachments',
-                name: 'attachmentsToggle',
-                type: 'boolean',
-                default: false,
-                description: 'Whether to add attachments',
-            },
-            {
-                displayName: 'Attachments',
-                name: 'attachments',
-                type: 'fixedCollection',
-                displayOptions: {
-                    show: {
-                        attachmentsToggle: [true],
-                    },
-                },
-                typeOptions: {
-                    multipleValues: true,
-                },
+                displayName: 'Additional Fields',
+                name: 'additionalFields',
+                type: 'collection',
+                placeholder: 'Add Field',
+                default: {},
                 options: [
                     {
-                        name: 'attachment',
-                        displayName: 'Attachment',
-                        values: [
+                        displayName: 'Cc',
+                        name: 'cc',
+                        type: 'string',
+                        default: '',
+                        placeholder: 'cc@example.com',
+                    },
+                    {
+                        displayName: 'Bcc',
+                        name: 'bcc',
+                        type: 'string',
+                        default: '',
+                        placeholder: 'bcc@example.com',
+                    },
+                    {
+                        displayName: 'Attachments',
+                        name: 'attachments',
+                        type: 'fixedCollection',
+                        typeOptions: {
+                            multipleValues: true,
+                        },
+                        options: [
                             {
-                                displayName: 'Property Name',
-                                name: 'propertyName',
-                                type: 'string',
-                                default: 'data',
-                                description: 'Name of the binary property which contains the data for the attachment',
-                            },
-                            {
-                                displayName: 'File Name',
-                                name: 'fileName',
-                                type: 'string',
-                                default: '',
-                                description: 'Optional name for the file',
+                                name: 'attachment',
+                                displayName: 'Attachment',
+                                values: [
+                                    {
+                                        displayName: 'Property Name',
+                                        name: 'propertyName',
+                                        type: 'string',
+                                        default: 'data',
+                                        description: 'Name of the binary property which contains the data for the attachment',
+                                    },
+                                    {
+                                        displayName: 'File Name',
+                                        name: 'fileName',
+                                        type: 'string',
+                                        default: '',
+                                        description: 'Optional name for the file',
+                                    },
+                                ],
                             },
                         ],
+                        default: {},
                     },
                 ],
-                default: {},
             },
         ],
     };
@@ -220,65 +208,64 @@ export class PostmarkSmtp implements INodeType {
     async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
         const items = this.getInputData();
         const returnData: INodeExecutionData[] = [];
+        const operation = this.getNodeParameter('operation', 0) as string;
         const credentials = await this.getCredentials('postmarkApi');
         const serverToken = credentials.serverToken as string;
 
         for (let i = 0; i < items.length; i++) {
             try {
-                const fromDomain = this.getNodeParameter('fromDomain', i) as string;
-                const fromName = this.getNodeParameter('fromName', i) as string;
-                const fromEmail = this.getNodeParameter('fromEmail', i) as string;
+                let responseData;
 
-                if (!fromEmail.toLowerCase().endsWith('@' + fromDomain.toLowerCase())) {
-                    if (this.continueOnFail()) {
-                        returnData.push({
-                            json: {
-                                error: `From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`,
-                            },
-                        });
-                        continue;
+                if (operation === 'sendEmail') {
+                    const fromDomain = this.getNodeParameter('fromDomain', i) as string;
+                    const fromName = this.getNodeParameter('fromName', i) as string;
+                    const fromEmail = this.getNodeParameter('fromEmail', i) as string;
+
+                    if (!fromEmail.toLowerCase().endsWith('@' + fromDomain.toLowerCase())) {
+                        if (this.continueOnFail()) {
+                            returnData.push({
+                                json: {
+                                    error: `From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`,
+                                },
+                            });
+                            continue;
+                        }
+                        throw new Error(`From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`);
                     }
-                    throw new Error(`From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`);
-                }
 
-                let from = fromEmail;
-                if (fromName) {
-                    from = `"${fromName}" <${fromEmail}>`;
-                }
+                    let from = fromEmail;
+                    if (fromName) {
+                        from = `"${fromName}" <${fromEmail}>`;
+                    }
 
-                const toName = this.getNodeParameter('toName', i) as string;
-                const toEmail = this.getNodeParameter('toEmail', i) as string;
+                    const toName = this.getNodeParameter('toName', i) as string;
+                    const toEmail = this.getNodeParameter('toEmail', i) as string;
 
-                let to = toEmail;
-                if (toName) {
-                    to = `"${toName}" <${toEmail}>`;
-                }
+                    let to = toEmail;
+                    if (toName) {
+                        to = `"${toName}" <${toEmail}>`;
+                    }
 
-                const cc = this.getNodeParameter('cc', i) as string;
-                const bcc = this.getNodeParameter('bcc', i) as string;
-                const subject = this.getNodeParameter('subject', i) as string;
-                const htmlBody = this.getNodeParameter('htmlBody', i) as string;
-                const textBody = this.getNodeParameter('textBody', i) as string;
+                    const subject = this.getNodeParameter('subject', i) as string;
+                    const htmlBody = this.getNodeParameter('htmlBody', i) as string;
 
-                const body: any = {
-                    From: from,
-                    To: to,
-                    Subject: subject,
-                    HtmlBody: htmlBody,
-                    TextBody: textBody,
-                    Cc: cc,
-                    Bcc: bcc,
-                    MessageStream: 'outbound',
-                };
+                    // Get Additional Fields
+                    const additionalFields = this.getNodeParameter('additionalFields', i) as any || {};
 
-                // Handle Attachments
-                const attachmentsToggle = this.getNodeParameter('attachmentsToggle', i) as boolean;
-                if (attachmentsToggle) {
-                    const attachmentsConfig = this.getNodeParameter('attachments', i) as any;
-                    const attachments = [];
+                    const body: any = {
+                        From: from,
+                        To: to,
+                        Subject: subject,
+                        HtmlBody: htmlBody,
+                        Cc: additionalFields.cc,
+                        Bcc: additionalFields.bcc,
+                        MessageStream: 'outbound',
+                    };
 
-                    if (attachmentsConfig && attachmentsConfig.attachment) {
-                        for (const att of attachmentsConfig.attachment) {
+                    // Handle Attachments
+                    if (additionalFields.attachments && additionalFields.attachments.attachment) {
+                        const attachments = [];
+                        for (const att of additionalFields.attachments.attachment) {
                             const propertyName = att.propertyName;
                             const binaryData = this.helpers.assertBinaryData(i, propertyName);
                             const binaryDataBuffer = await this.helpers.getBinaryDataBuffer(i, propertyName);
@@ -289,25 +276,25 @@ export class PostmarkSmtp implements INodeType {
                                 ContentType: binaryData.mimeType,
                             });
                         }
+
+                        if (attachments.length > 0) {
+                            body.Attachments = attachments;
+                        }
                     }
 
-                    if (attachments.length > 0) {
-                        body.Attachments = attachments;
-                    }
+                    const options: IRequestOptions = {
+                        method: 'POST',
+                        uri: 'https://api.postmarkapp.com/email',
+                        headers: {
+                            'X-Postmark-Server-Token': serverToken,
+                            'Accept': 'application/json',
+                        },
+                        body: body,
+                        json: true,
+                    };
+
+                    responseData = await this.helpers.request(options);
                 }
-
-                const options: IRequestOptions = {
-                    method: 'POST',
-                    uri: 'https://api.postmarkapp.com/email',
-                    headers: {
-                        'X-Postmark-Server-Token': serverToken,
-                        'Accept': 'application/json',
-                    },
-                    body: body,
-                    json: true,
-                };
-
-                const responseData = await this.helpers.request(options);
 
                 returnData.push({
                     json: responseData,

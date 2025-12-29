@@ -9,7 +9,7 @@ This is an n8n community node. It lets you use Postmark to send transactional em
 ## Features
 
 - **Send Email**: Send individual emails with support for:
-    - HTML and Text bodies.
+    - HTML bodies.
     - Attachments (binary data).
     - CC and BCC recipients.
     - Dynamic sender verification (loads verified domains from your account).
@@ -42,9 +42,11 @@ docker exec -it n8n npm install n8n-nodes-postmark-smtp
 4.  Enter **From Email**. *Note: This must belong to the selected 'From Domain' or the node will error.*
 5.  (Optional) Enter **To Name**.
 6.  Enter **To Email**.
-7.  (Optional) Enter **Cc** and **Bcc**.
-8.  Fill in **Subject**, **HTML Body**, and **Text Body**.
-9.  (Optional) Toggle **Attachments** to add files.
+7.  Fill in **Subject** and **HTML Body**.
+8.  (Optional) **Additional Fields**:
+    -   **Cc**
+    -   **Bcc**
+    -   **Attachments**: Add files from previous nodes.
 
 ## Development
 
