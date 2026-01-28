@@ -6,7 +6,7 @@ import {
     INodeTypeDescription,
     ILoadOptionsFunctions,
     INodePropertyOptions,
-    IRequestOptions,
+    IHttpRequestOptions,
 } from 'n8n-workflow';
 
 export class PostmarkSmtp implements INodeType {
@@ -184,9 +184,9 @@ export class PostmarkSmtp implements INodeType {
                 const credentials = await this.getCredentials('postmarkApi');
                 const token = credentials.accountToken as string;
 
-                const options: IRequestOptions = {
+                const options: IHttpRequestOptions = {
                     method: 'GET',
-                    uri: 'https://api.postmarkapp.com/domains?count=50&offset=0',
+                    url: 'https://api.postmarkapp.com/domains?count=50&offset=0',
                     headers: {
                         'X-Postmark-Account-Token': token,
                         'Accept': 'application/json',
@@ -194,7 +194,7 @@ export class PostmarkSmtp implements INodeType {
                     json: true,
                 };
 
-                const response = await this.helpers.request(options);
+                const response = await this.helpers.httpRequest(options);
                 const domains = response.Domains || [];
 
                 return domains.map((domain: any) => ({
@@ -282,9 +282,9 @@ export class PostmarkSmtp implements INodeType {
                         }
                     }
 
-                    const options: IRequestOptions = {
+                    const options: IHttpRequestOptions = {
                         method: 'POST',
-                        uri: 'https://api.postmarkapp.com/email',
+                        url: 'https://api.postmarkapp.com/email',
                         headers: {
                             'X-Postmark-Server-Token': serverToken,
                             'Accept': 'application/json',
@@ -293,7 +293,7 @@ export class PostmarkSmtp implements INodeType {
                         json: true,
                     };
 
-                    responseData = await this.helpers.request(options);
+                    responseData = await this.helpers.httpRequest(options);
                 }
 
                 returnData.push({

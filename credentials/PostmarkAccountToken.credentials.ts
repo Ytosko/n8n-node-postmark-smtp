@@ -2,6 +2,7 @@
 import {
     ICredentialType,
     INodeProperties,
+    ICredentialTestRequest,
 } from 'n8n-workflow';
 
 export class PostmarkAccountToken implements ICredentialType {
@@ -19,4 +20,13 @@ export class PostmarkAccountToken implements ICredentialType {
             },
         },
     ];
+    test: ICredentialTestRequest = {
+        request: {
+            url: 'https://api.postmarkapp.com/servers',
+            method: 'GET',
+            headers: {
+                'X-Postmark-Account-Token': '={{$credentials.accountToken}}',
+            },
+        },
+    };
 }
