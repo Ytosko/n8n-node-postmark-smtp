@@ -32,7 +32,9 @@
             "dist/nodes/PostmarkSmtp/PostmarkSmtp.node.js"
         ],
         "credentials": [
-            "dist/credentials/PostmarkApi.credentials.js"
+            "dist/credentials/PostmarkApi.credentials.js",
+            "dist/credentials/PostmarkAccountToken.credentials.js",
+            "dist/credentials/PostmarkServerToken.credentials.js"
         ]
     },
     "devDependencies": {

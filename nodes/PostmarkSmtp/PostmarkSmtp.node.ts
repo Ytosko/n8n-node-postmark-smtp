@@ -8,6 +8,7 @@ import {
     INodePropertyOptions,
     IHttpRequestOptions,
     NodeApiError,
+    NodeOperationError,
 } from 'n8n-workflow';
 
 export class PostmarkSmtp implements INodeType {
@@ -234,7 +235,9 @@ export class PostmarkSmtp implements INodeType {
                             });
                             continue;
                         }
-                        throw new Error(`From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`);
+                        throw new NodeOperationError(this.getNode(), `From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`, {
+                            description: 'Ensure the "From Email" domain matches the "From Domain" field.',
+                        });
                     }
 
                     let from = fromEmail;

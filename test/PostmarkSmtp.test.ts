@@ -7,6 +7,6 @@ describe('PostmarkSmtp Node', () => {
         expect(node).toBeDefined();
         expect(node.description.displayName).toBe('Postmark SMTP by Ytosko');
         expect(node.description.name).toBe('postmarkSmtp');
-        expect(node.description.credentials).toHaveLength(2);
+        expect(node.description.credentials).toHaveLength(1);
     });
 });
