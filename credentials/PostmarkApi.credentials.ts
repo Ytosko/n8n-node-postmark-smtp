@@ -28,7 +28,7 @@ export class PostmarkApi implements ICredentialType {
             typeOptions: {
                 password: true,
             },
-            description: 'The "Account API Token" found in your account settings. Required fopr fetching verified domains.',
+            description: 'The "Account API Token" found in your account settings. Required for fetching verified domains.',
         },
     ];
     test: ICredentialTestRequest = {

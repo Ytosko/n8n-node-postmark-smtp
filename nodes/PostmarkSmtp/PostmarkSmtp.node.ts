@@ -7,6 +7,7 @@ import {
     ILoadOptionsFunctions,
     INodePropertyOptions,
     IHttpRequestOptions,
+    NodeApiError,
 } from 'n8n-workflow';
 
 export class PostmarkSmtp implements INodeType {
@@ -227,6 +228,9 @@ export class PostmarkSmtp implements INodeType {
                                 json: {
                                     error: `From Email (${fromEmail}) must belong to the selected domain (${fromDomain})`,
                                 },
+                                pairedItem: {
+                                    item: i,
+                                },
                             });
                             continue;
                         }
@@ -298,6 +302,9 @@ export class PostmarkSmtp implements INodeType {
 
                 returnData.push({
                     json: responseData,
+                    pairedItem: {
+                        item: i,
+                    },
                 });
 
             } catch (error) {
@@ -306,10 +313,13 @@ export class PostmarkSmtp implements INodeType {
                         json: {
                             error: (error as any).message,
                         },
+                        pairedItem: {
+                            item: i,
+                        },
                     });
                     continue;
                 }
-                throw error;
+                throw new NodeApiError(this.getNode(), error as any);
             }
         }
 
